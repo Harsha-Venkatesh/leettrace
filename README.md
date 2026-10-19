@@ -2,7 +2,7 @@
 
 A [Python Tutor](https://pythontutor.com)–style **Mac app for LeetCode practice**. Paste your solution and a test case, then step through the run one line at a time and watch your variables, pointers and recursive calls change.
 
-![icon](AppIcon.icns)
+<img src="docs/icon.png" width="96" alt="LeetTrace icon">
 
 ## Features
 
