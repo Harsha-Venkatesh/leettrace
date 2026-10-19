@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LeetTrace</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="bar">
+  <div class="brand"><span class="logo">⟲</span> LeetTrace</div>
+
+  <div class="transport" id="transport">
+    <button class="ib" id="b-first" title="First step (Home)">⏮</button>
+    <button class="ib" id="b-prev" title="Back one step (←)">◀</button>
+    <button class="ib play" id="b-play" title="Play / pause (Space)">▶</button>
+    <button class="ib" id="b-next" title="Forward one step (→)">▶︎|</button>
+    <button class="ib" id="b-last" title="Last step (End)">⏭</button>
+    <input type="range" id="slider" min="0" max="0" value="0">
+    <span class="stepinfo" id="stepinfo">—</span>
+    <span class="sep"></span>
+    <button class="tb" id="b-pcall" title="Jump to the previous function call (⇧←)">↖ prev call</button>
+    <button class="tb" id="b-ncall" title="Jump to the next function call (⇧→)">next call ↘</button>
+    <button class="tb" id="b-nret" title="Jump to when the current call returns">finish call ↩</button>
+    <select id="speed" title="Playback speed">
+      <option value="1200">0.5×</option>
+      <option value="650" selected>1×</option>
+      <option value="320">2×</option>
+      <option value="140">4×</option>
+    </select>
+  </div>
+
+  <div class="actions">
+    <select id="method" title="Which method LeetCode calls" hidden></select>
+    <button class="btn ghost" id="b-edit" hidden>Edit code</button>
+    <button class="btn primary" id="b-run" title="Run and visualize (⌘↵)">Visualize ▸</button>
+  </div>
+</header>
+
+<main class="grid">
+  <section class="left">
+    <div class="panel code-panel">
+      <div class="ph"><span>Code</span><span class="legend" id="code-legend" hidden><i class="lg prev"></i>just ran <i class="lg next"></i>runs next <i class="lg wait"></i>caller paused here</span></div>
+      <textarea id="editor" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="Paste your LeetCode Python solution here…"></textarea>
+      <div id="codeview" class="codeview" hidden></div>
+    </div>
+    <div class="panel tc-panel">
+      <div class="ph"><span>Test case</span><span class="hint">one argument per line, or <code>name = value, …</code></span></div>
+      <textarea id="testcase" spellcheck="false" placeholder="[3,1,4,3,null,1,5]"></textarea>
+    </div>
+    <div class="panel out-panel">
+      <div class="ph"><span>Result</span></div>
+      <div id="output" class="output"><span class="muted">Press <b>Visualize</b> (⌘↵) to run your code on the test case.</span></div>
+    </div>
+  </section>
+
+  <section class="right">
+    <div id="explain" class="explain idle">
+      <div class="ex-title">Paste a solution, add a test case, then press <b>Visualize</b>.</div>
+      <div class="ex-sub">Step through with ← → (or Space to play). Every variable, pointer and recursive call is drawn as it happens.</div>
+    </div>
+
+    <div class="panel mem-panel">
+      <div class="ph two"><span>Call stack <span class="hint">newest on top</span></span><span>Objects &amp; data structures</span></div>
+      <div id="memory" class="memory">
+        <div id="mem-inner" class="mem-inner">
+          <div id="frames" class="frames"></div>
+          <div id="objects" class="objects"></div>
+          <svg id="arrows" class="arrows"></svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel rt-panel" id="rt-panel">
+      <div class="ph">
+        <span>Recursion tree <span class="hint">click a call to jump to it</span></span>
+        <span class="legend"><i class="lg r-cur"></i>running <i class="lg r-act"></i>waiting on stack <i class="lg r-done"></i>returned
+          <label class="tog"><input type="checkbox" id="show-future"> show upcoming calls</label></span>
+      </div>
+      <div id="rtree" class="rtree"></div>
+    </div>
+  </section>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
