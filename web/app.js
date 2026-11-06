@@ -27,7 +27,41 @@ class Solution:
 `;
 const SAMPLE_TC = '[3,1,4,3,null,1,5]';
 
+const SAMPLE_CPP = `/**
+ * Definition for a binary tree node.
+ * struct TreeNode {
+ *     int val;
+ *     TreeNode *left;
+ *     TreeNode *right;
+ * };
+ */
+class Solution {
+public:
+    int checker(TreeNode* root, int maxval) {
+        int count = 0;
+        if (root == nullptr)
+            return 0;
+        if (root->val >= maxval)
+            count = 1;
+        maxval = max(root->val, maxval);
+        count += checker(root->left, maxval);
+        count += checker(root->right, maxval);
+        return count;
+    }
+
+    int goodNodes(TreeNode* root) {
+        return checker(root, root->val);
+    }
+};
+`;
+
+const LANGS = {
+  py: { sample: SAMPLE_CODE, key: '', placeholder: 'Paste your LeetCode Python solution here…' },
+  cpp: { sample: SAMPLE_CPP, key: '.cpp', placeholder: 'Paste your LeetCode C++ solution here…' },
+};
+
 const S = {
+  lang: 'py',
   trace: null, i: 0, timer: null, code: '', lines: [],
   callMap: new Map(),      // call id -> call record
   nodeCalls: new Map(),    // heap oid of a tree/list node -> calls that received it
@@ -53,7 +87,57 @@ const KW = new Set('def class return if elif else for while in not and or is imp
 const CONST = new Set(['None', 'True', 'False']);
 const BUILTIN = new Set('len range max min sum abs sorted reversed enumerate zip map filter list dict set tuple int str float bool print any all isinstance deque defaultdict Counter heappush heappop heapify inf ord chr divmod pow'.split(' '));
 
-function hl(line) {
+const CPP_KW = new Set('auto break case catch class const constexpr continue default delete do else enum explicit for friend goto if inline namespace new noexcept operator private protected public return sizeof static static_cast struct switch template throw try typedef typename union using virtual void volatile while'.split(' '));
+const CPP_CONST = new Set(['nullptr', 'true', 'false', 'NULL']);
+const CPP_TYPE = new Set('int long short char bool double float unsigned signed size_t string vector map set unordered_map unordered_set multiset multimap pair tuple queue stack deque priority_queue list array optional function TreeNode ListNode'.split(' '));
+
+/** Highlighted HTML for a line of the trace's language. `st` carries an open C++ block comment across lines. */
+function hl(line, st = {}) {
+  return S.trace && S.trace.lang === 'cpp' ? hlCpp(line, st) : hlPy(line);
+}
+
+function hlCpp(line, st) {
+  const com = s => `<span class="t-com">${esc(s)}</span>`;
+  let out = '', start = 0;
+  if (st.block) {
+    const j = line.indexOf('*/');
+    if (j < 0) return com(line);
+    out += com(line.slice(0, j + 2));
+    start = j + 2;
+    st.block = false;
+  }
+  if (/^\s*#/.test(line.slice(start))) return out + `<span class="t-pp">${esc(line.slice(start))}</span>`;
+  const re = /(\/\/.*$)|(\/\*)|("(?:\\.|[^"\\])*"?|'(?:\\.|[^'\\])*'?)|(\b\d+(?:\.\d+)?[uUlLfF]*\b)|([A-Za-z_]\w*)|(\s+)|(.)/g;
+  re.lastIndex = start;
+  let m, prevWord = '';
+  while ((m = re.exec(line))) {
+    if (m[1]) out += com(m[1]);
+    else if (m[2]) {
+      const j = line.indexOf('*/', m.index + 2);
+      if (j < 0) { out += com(line.slice(m.index)); st.block = true; break; }
+      out += com(line.slice(m.index, j + 2));
+      re.lastIndex = j + 2;
+    } else if (m[3]) out += `<span class="t-str">${esc(m[3])}</span>`;
+    else if (m[4]) out += `<span class="t-num">${m[4]}</span>`;
+    else if (m[5]) {
+      const w = m[5];
+      let c = '';
+      if (prevWord === 'class' || prevWord === 'struct') c = 't-def';
+      else if (CPP_KW.has(w)) c = 't-kw';
+      else if (CPP_CONST.has(w)) c = 't-const';
+      else if (w === 'this') c = 't-self';
+      else if (CPP_TYPE.has(w)) c = 't-bi';
+      else if (/^\s*\(/.test(line.slice(re.lastIndex))) c = 't-fn';
+      out += c ? `<span class="${c}">${w}</span>` : w;
+      prevWord = w;
+      continue;
+    } else out += esc(m[0]);
+    if (!m[6]) prevWord = '';
+  }
+  return out;
+}
+
+function hlPy(line) {
   const re = /(#.*$)|("(?:\\.|[^"\\])*"?|'(?:\\.|[^'\\])*'?)|(\b\d+(?:\.\d+)?\b)|([A-Za-z_]\w*)|(\s+)|(.)/g;
   let out = '', m, prevWord = '';
   while ((m = re.exec(line))) {
@@ -121,8 +205,8 @@ function isHiddenSelf(k, v, heap) {
 }
 
 function primClass(t) {
-  if (t === 'None') return 'none';
-  if (t === 'True' || t === 'False') return 'bool';
+  if (t === 'None' || t === 'nullptr' || t === 'nullopt') return 'none';
+  if (t === 'True' || t === 'False' || t === 'true' || t === 'false') return 'bool';
   if (/^['"]/.test(t)) return 'str';
   if (/^-?[\d.]/.test(t) || t === 'inf' || t === '-inf') return 'num';
   return '';
@@ -159,12 +243,13 @@ async function visualize() {
   const code = $('#editor').value;
   const testcase = $('#testcase').value;
   const method = $('#method').hidden ? null : $('#method').value;
-  store('code', code); store('tc', testcase);
+  const lang = S.lang, key = LANGS[lang].key;
+  store('code' + key, code); store('tc' + key, testcase);
   stop();
   const btn = $('#b-run');
-  btn.disabled = true; btn.textContent = 'Running…';
+  btn.disabled = true; btn.textContent = lang === 'cpp' ? 'Compiling…' : 'Running…';
   let t;
-  try { t = await runTracer({ code, testcase, method }); }
+  try { t = await runTracer({ code, testcase, method, lang }); }
   catch (e) { t = { ok: false, error: { msg: 'Could not run Python: ' + e } }; }
   btn.disabled = false; btn.textContent = 'Visualize ▸';
   if (!t.ok) return showError(t.error);
@@ -266,8 +351,9 @@ function render() {
 }
 
 function buildCodeView() {
+  const st = {};
   $('#codeview').innerHTML = S.lines.map((l, k) =>
-    `<div class="ln" data-ln="${k + 1}"><span class="gut"><span class="num">${k + 1}</span><span class="arw"></span></span><span class="src">${hl(l) || ' '}</span><span class="tags"></span></div>`).join('');
+    `<div class="ln" data-ln="${k + 1}"><span class="gut"><span class="num">${k + 1}</span><span class="arw"></span></span><span class="src">${hl(l, st) || ' '}</span><span class="tags"></span></div>`).join('');
 }
 
 /** Line that finished executing right before step i. */
@@ -326,10 +412,16 @@ function renderExplain(st) {
       : `LeetCode calls your method with the test-case input.`);
   } else if (st.e === 'return') {
     kind = 'ret';
-    const rv = vtext(top.ret, st.h);
-    title = `<span class="ex-kind">return</span> <code>${esc(fmtCall(call))}</code> returns <b class="val">${esc(rv)}</b>`;
-    sub.push(caller ? `This frame is removed from the stack; ${esc(caller.n)} resumes at line ${caller.ln} with the value ${esc(rv)}.`
-      : `That's the final answer handed back to LeetCode.`);
+    if (top.ret) {
+      const rv = vtext(top.ret, st.h);
+      title = `<span class="ex-kind">return</span> <code>${esc(fmtCall(call))}</code> returns <b class="val">${esc(rv)}</b>`;
+      sub.push(caller ? `This frame is removed from the stack; ${esc(caller.n)} resumes at line ${caller.ln} with the value ${esc(rv)}.`
+        : `That's the final answer handed back to LeetCode.`);
+    } else { // C++ void function
+      title = `<span class="ex-kind">return</span> <code>${esc(fmtCall(call))}</code> finishes`;
+      sub.push(caller ? `This frame is removed from the stack; ${esc(caller.n)} resumes at line ${caller.ln}.`
+        : `Control goes back to LeetCode.`);
+    }
   } else if (st.e === 'exception') {
     kind = 'err';
     title = `<span class="ex-kind">exception</span> ${esc(st.x)}`;
@@ -526,7 +618,7 @@ function renderDTree(rootId, heap, done, st) {
       if (c[0] === 'r' && pos.has(c[1])) {
         const q = pos.get(c[1]); const cs = nodeStatus(c[1], st);
         edges += `<line class="${cs ? 'e-' + cs.cls : ''}" x1="${cx(p)}" y1="${cy(p)}" x2="${cx(q)}" y2="${cy(q)}"/>`;
-      } else if (c[0] === 'p' && c[1] === 'None' && s) {
+      } else if (c[0] === 'p' && (c[1] === 'None' || c[1] === 'nullptr') && s) {
         edges += `<text class="nul" x="${cx(p) + dir * 22 - 4}" y="${cy(p) + 30}">∅</text>`;
       }
     });
@@ -693,11 +785,34 @@ function renderOutput(st) {
 
 /* ================================================================ wiring */
 
+/** Switches the editor to another language, keeping each language's code and test case separately. */
+function setLang(lang, save = true) {
+  if (!LANGS[lang]) lang = 'py';
+  if (save && lang !== S.lang) {
+    const key = LANGS[S.lang].key;
+    store('code' + key, $('#editor').value); store('tc' + key, $('#testcase').value);
+  }
+  S.lang = lang;
+  store('lang', lang);
+  const L = LANGS[lang];
+  $('#editor').value = load('code' + L.key) || L.sample;
+  $('#testcase').value = load('tc' + L.key) || SAMPLE_TC;
+  $('#editor').placeholder = L.placeholder;
+  $('#method').hidden = true;
+  document.querySelectorAll('#lang button').forEach(b => b.classList.toggle('on', b.dataset.lang === lang));
+}
+
 function init() {
-  $('#editor').value = load('code') || SAMPLE_CODE;
-  $('#testcase').value = load('tc') || SAMPLE_TC;
+  setLang(load('lang') || 'py', false);
   document.body.classList.add('idle');
   setMode('edit');
+
+  document.querySelectorAll('#lang button').forEach(b => b.addEventListener('click', () => {
+    if (b.dataset.lang === S.lang) return;
+    stop();
+    setLang(b.dataset.lang);
+    setMode('edit');
+  }));
 
   $('#b-run').onclick = visualize;
   $('#b-edit').onclick = () => { stop(); setMode('edit'); };

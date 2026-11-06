@@ -12,6 +12,7 @@ import inspect
 import io
 import itertools
 import json
+import os
 import re
 import sys
 import time
@@ -467,6 +468,10 @@ def err(msg, line=None):
 
 
 def run(req):
+    if req.get("lang") == "cpp":
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from tracer_cpp import run_cpp
+        return run_cpp(req)
     code = req.get("code") or ""
     tc = req.get("testcase") or ""
     want = req.get("method") or None

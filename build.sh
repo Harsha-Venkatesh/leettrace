@@ -14,7 +14,7 @@ swiftc -swift-version 5 -parse-as-library -O \
 
 cp Info.plist "$APP/Contents/"
 cp -R web "$APP/Contents/Resources/web"
-cp tracer/tracer.py "$APP/Contents/Resources/"
+cp tracer/tracer.py tracer/tracer_cpp.py tracer/lt_runtime.h "$APP/Contents/Resources/"
 [[ -f AppIcon.icns ]] && cp AppIcon.icns "$APP/Contents/Resources/"
 
 codesign --force --deep -s - "$APP"
