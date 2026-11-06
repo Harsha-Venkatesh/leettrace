@@ -1,6 +1,6 @@
 # LeetTrace
 
-A [Python Tutor](https://pythontutor.com)–style **Mac app for LeetCode practice**. Paste your solution and a test case, then step through the run one line at a time and watch your variables, pointers and recursive calls change.
+A [Python Tutor](https://pythontutor.com)–style **Mac app for LeetCode practice**, for **Python and C++**. Paste your solution and a test case, then step through the run one line at a time and watch your variables, pointers and recursive calls change.
 
 <img src="docs/icon.png" width="96" alt="LeetTrace icon">
 
@@ -39,13 +39,17 @@ cd leettrace
 cp -R build/LeetTrace.app /Applications/
 ```
 
-### Requirement: Python 3
+### Requirements
+
+**Python 3** (both languages):
 
 LeetTrace runs your code with the Python 3 already on your Mac. It looks in Homebrew (`/opt/homebrew`, `/usr/local`), Anaconda/Miniconda, pyenv, python.org installs, and `/usr/bin/python3`. To use a specific interpreter, set `LEETTRACE_PYTHON`.
 
+**For C++:** Apple's command line developer tools (`xcode-select --install`). LeetTrace compiles your code with the `clang++` that comes with them. No debugger or admin rights are needed.
+
 ## Usage
 
-1. Paste your LeetCode Python solution (`class Solution: ...`) into the **Code** box.
+1. Pick **Python** or **C++** at the top of the **Code** box, then paste your LeetCode solution (`class Solution ...`).
 2. Enter the test case in either format:
    - one argument per line:
      ```
@@ -68,12 +72,20 @@ Notes:
   ```
 - Runs stop after 2,500 steps or 10 seconds, so infinite loops won't hang the app.
 
+C++ notes:
+- `TreeNode`, `ListNode`, `using namespace std` and the whole standard library are provided, as on LeetCode. `#include` lines (including `<bits/stdc++.h>`) are ignored.
+- You'll see vectors, 2D grids, maps, sets, `stack` / `queue` / `priority_queue`, pairs, tuples and the fields of your own classes. Lambdas, including recursive `function<>` and `auto&& self` ones, appear in the call stack like any other function.
+- Runtime errors stop the run at the line that caused them, as LeetCode does: null-pointer access, index out of range, signed integer overflow and division by zero.
+- Compiling adds a couple of seconds before the first step.
+
 ## How it works
 
 | Path | What it does |
 | --- | --- |
 | `Sources/LeetTraceApp.swift` | SwiftUI window hosting a WKWebView; runs the tracer through a native message bridge |
 | `tracer/tracer.py` | Runs your code under `sys.settrace` and emits a JSON trace of every step |
+| `tracer/tracer_cpp.py` | C++: reads clang's AST, inserts a trace hook before every statement, loop test and return (keeping line numbers), generates a `main()` from the test case, then compiles and runs it |
+| `tracer/lt_runtime.h` | C++: the LeetCode-style prelude plus the runtime the hooks call. It snapshots the call stack and every reachable object into the same JSON trace |
 | `web/` | The visualizer UI (HTML/CSS/JS, no dependencies) |
 | `devserver.py` | Serves `web/` in a normal browser for UI development: `python3 devserver.py` → http://localhost:8765 |
 | `make_icon.py` | Regenerates `AppIcon.icns` (needs Pillow) |

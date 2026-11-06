@@ -118,6 +118,16 @@ button, select, input { font: inherit; color: inherit; }
 .btn.primary:hover { filter: brightness(1.08); }
 .btn.ghost { background: var(--panel2); }
 .btn[disabled] { opacity: .6; cursor: progress; }
+.ph-l { display: flex; align-items: center; gap: 10px; }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 7px; overflow: hidden; background: var(--panel2); }
+.seg button {
+  border: 0; background: none; cursor: pointer; padding: 2px 9px;
+  font-family: inherit; font-size: 11px; font-weight: 600; line-height: 18px; text-transform: none; letter-spacing: 0; color: var(--muted);
+}
+.seg button + button { border-left: 1px solid var(--border); }
+.seg button.on { background: var(--accent); color: #fff; }
+.seg button:not(.on):hover { color: var(--text); }
+.t-pp { color: var(--t-kw); font-style: italic; }
 
 /* ---------------------------------------------------------------- layout */
 .grid {
